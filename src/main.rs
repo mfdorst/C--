@@ -3,7 +3,10 @@
 mod parser;
 
 fn main() {
-  let result = parser::recognize("abc + def * 123 - 456");
+  let result = parser::recognize("abc + def * (3 + xyz)");
 
-  println!("{:?}", result);
+  match result {
+    Ok(res) => println!("{:?}", res),
+    Err(e) => println!("{:?}", e),
+  }
 }
