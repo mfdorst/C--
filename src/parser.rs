@@ -93,6 +93,109 @@ pub enum Factor {
   Expr(Box<Expr>),
 }
 
+fn child_prefix(prefix: &str) -> String {
+  format!("{}  |", prefix)
+}
+
+trait TreePrintable {
+  fn print_tree(&self, prefix: String) -> String;
+}
+
+impl TreePrintable for Expr {
+  fn print_tree(&self, prefix: String) -> String {
+    use self::Expr::Expr;
+
+    match self {
+      Expr(term, expr_prime) => print_tree(
+        &prefix,
+        "Expr",
+        vec![
+          term.print_tree(child_prefix(&prefix)),
+          expr_prime.print_tree(child_prefix(&prefix)),
+        ],
+      ),
+    }
+  }
+}
+
+impl TreePrintable for ExprPrime {
+  fn print_tree(&self, prefix: String) -> String {
+    use ExprPrime::{Add, None, Sub};
+
+    let vec = match self {
+      Add(term, expr_prime) | Sub(term, expr_prime) => vec![
+        match self {
+          Add(_, _) => "Add".to_owned(),
+          Sub(_, _) => "Sub".to_owned(),
+          _ => unreachable!(),
+        },
+        term.print_tree(child_prefix(&prefix)),
+        expr_prime.print_tree(child_prefix(&prefix)),
+      ],
+      None => vec![],
+    };
+
+    print_tree(&prefix, "ExprPrime", vec![])
+  }
+}
+
+impl TreePrintable for Term {
+  fn print_tree(&self, prefix: String) -> String {
+    match self {
+      Term::Term(factor, term_prime) => print_tree(
+        &prefix,
+        "Term",
+        vec![]
+        //   factor.print_tree(&child_prefix(prefix)),
+        //   term_prime.print_tree(&child_prefix(prefix)),
+        // ],
+      ),
+    }
+  }
+}
+
+impl TreePrintable for TermPrime {
+  fn print_tree(&self, prefix: String) -> String {
+    "TermPrime".to_owned()
+  }
+}
+
+impl TreePrintable for Factor {
+  fn print_tree(&self, prefix: String) -> String {
+    "Factor".to_owned()
+  }
+}
+
+fn print_tree(prefix: &String, node: &str, children: Vec<String>) -> String {
+  // Sum of lengths of: prefix + node + each child prefix + a newline for each child
+  // (child prefix has length 'prefix.len() + 5' due to the added '  |- ')
+  let mut str_len = prefix.len() + node.len() + (prefix.len() + 6) * children.len();
+  // Add the length of the name of each child to 'str_len'
+  for child in &children {
+    str_len += child.len();
+  }
+  let mut tree = String::with_capacity(str_len);
+  tree.push_str(&format!("{}- {}", prefix, node));
+
+  if children.len() == 0 {
+    return tree;
+  }
+
+  for child in children[..children.len() - 1].iter() {
+    tree.push_str(&format!("\n{}{}", prefix, child));
+  }
+  tree.push_str(&format!("\n{}{}", prefix, children[children.len() - 1]));
+  tree
+}
+
+use std::fmt;
+
+impl fmt::Display for Expr {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    write!(f, "{}", self.print_tree("".to_owned()))
+  }
+}
+
 pub fn parse(source: &str) -> Result<Expr, ParseError> {
   let mut lexer = Token::lexer(source);
 
