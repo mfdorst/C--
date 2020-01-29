@@ -3,10 +3,11 @@
 mod parser;
 
 fn main() {
-  let result = parser::parse("abc * (def + 3) * 45");
+  let expr = "abc * (def + 3) * 45";
+  let result = parser::parse(expr);
 
   match result {
-    Ok(res) => println!("{:?}", res),
+    Ok(res) => println!("{}\n\n{}", expr, res),
     Err(e) => println!("{}", e.msg),
   }
 }

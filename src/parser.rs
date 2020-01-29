@@ -61,6 +61,18 @@ pub enum Expr {
   Expr(Term, ExprPrime),
 }
 
+impl TreeViewable for Expr {
+  fn root(&self) -> String {
+    "Expr".to_owned()
+  }
+
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>> {
+    match self {
+      Expr::Expr(term, expr_pr) => vec![Box::new(term), Box::new(expr_pr)],
+    }
+  }
+}
+
 // Expr' -> + Term Expr' | - Term Expr' | E
 #[derive(Debug)]
 pub enum ExprPrime {
@@ -69,10 +81,44 @@ pub enum ExprPrime {
   None,
 }
 
+impl TreeViewable for ExprPrime {
+  fn root(&self) -> String {
+    use ExprPrime::{Add, None, Sub};
+    match self {
+      Add(_, _) => "Expr' (+)",
+      Sub(_, _) => "Expr' (+)",
+      None => "Expr' (Empty)",
+    }
+    .to_owned()
+  }
+
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>> {
+    use ExprPrime::{Add, None, Sub};
+    match self {
+      Add(term, expr_prime) | Sub(term, expr_prime) => {
+        vec![Box::new(term), Box::new(&**expr_prime)]
+      }
+      None => vec![],
+    }
+  }
+}
+
 // Term -> Factor Term'
 #[derive(Debug)]
 pub enum Term {
   Term(Factor, TermPrime),
+}
+
+impl TreeViewable for Term {
+  fn root(&self) -> String {
+    "Term".to_owned()
+  }
+
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>> {
+    let Term::Term(factor, term_prime) = self;
+
+    vec![Box::new(factor), Box::new(term_prime)]
+  }
 }
 
 // Term' -> * Factor Term' | / Factor Term' | E
@@ -83,6 +129,28 @@ pub enum TermPrime {
   None,
 }
 
+impl TreeViewable for TermPrime {
+  fn root(&self) -> String {
+    use TermPrime::{Div, Mult, None};
+    match self {
+      Mult(_, _) => "Term' (*)",
+      Div(_, _) => "Term' (/)",
+      None => "Term' (Empty)",
+    }
+    .to_owned()
+  }
+
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>> {
+    use TermPrime::{Div, Mult, None};
+    match self {
+      Mult(factor, term_prime) | Div(factor, term_prime) => {
+        vec![Box::new(factor), Box::new(&**term_prime)]
+      }
+      None => vec![],
+    }
+  }
+}
+
 // Factor -> Ident | Integer | (Expr)
 #[derive(Debug)]
 pub enum Factor {
@@ -91,6 +159,46 @@ pub enum Factor {
   // Expr must be boxed because the recursive definition makes size impossible to compute.
   // Since Box<Expr> is just a pointer, its size is known.
   Expr(Box<Expr>),
+}
+
+impl TreeViewable for Factor {
+  fn root(&self) -> String {
+    use Factor::{Expr, Ident, Integer};
+    match self {
+      Ident(id) => format!(r#"Factor ("{}")"#, id),
+      Integer(int) => format!("Factor ({})", int),
+      Expr(_) => "Factor (Expr)".to_owned(),
+    }
+  }
+
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>> {
+    use Factor::Expr;
+    match self {
+      Expr(expr) => vec![Box::new(&**expr)],
+      _ => vec![],
+    }
+  }
+}
+
+trait TreeViewable {
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>>;
+  fn root(&self) -> String;
+}
+
+fn tree_view(tree: &dyn TreeViewable, prefix: String) -> String {
+  let mut view = format!("{}- {}\n", prefix, tree.root());
+
+  for child in tree.get_children() {
+    view.push_str(&tree_view(*child, format!("{}  |", prefix)))
+  }
+
+  view
+}
+
+impl std::fmt::Display for Expr {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", tree_view(self, "".to_owned()))
+  }
 }
 
 pub fn parse(source: &str) -> Result<Expr, ParseError> {
