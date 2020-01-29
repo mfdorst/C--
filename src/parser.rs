@@ -185,19 +185,51 @@ trait TreeViewable {
   fn root(&self) -> String;
 }
 
-fn tree_view(tree: &dyn TreeViewable, prefix: String) -> String {
-  let mut view = format!("{}- {}\n", prefix, tree.root());
+fn tree_view_impl(
+  tree: &dyn TreeViewable,
+  current_prefix: String,
+  next_prefix: String,
+  last: bool,
+) -> String {
+  let mut view = if last {
+    format!("{}└- {}\n", current_prefix, tree.root())
+  } else {
+    format!("{}├- {}\n", current_prefix, tree.root())
+  };
 
-  for child in tree.get_children() {
-    view.push_str(&tree_view(*child, format!("{}  |", prefix)))
+  let children = tree.get_children();
+  if children.len() == 0 {
+    return view;
+  }
+  let last_index = children.len() - 1;
+  for (i, child) in children.iter().enumerate() {
+    if i < last_index {
+      view.push_str(&tree_view_impl(
+        **child,
+        next_prefix.clone(),
+        format!("{}|  ", next_prefix.clone()),
+        false,
+      ))
+    } else {
+      view.push_str(&tree_view_impl(
+        **child,
+        next_prefix.clone(),
+        format!("{}   ", next_prefix.clone()),
+        true,
+      ))
+    }
   }
 
   view
 }
 
+fn tree_view(tree: &dyn TreeViewable) -> String {
+  tree_view_impl(tree, "".to_owned(), "   ".to_owned(), true)
+}
+
 impl std::fmt::Display for Expr {
   fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-    write!(f, "{}", tree_view(self, "".to_owned()))
+    write!(f, "{}", tree_view(self))
   }
 }
 
