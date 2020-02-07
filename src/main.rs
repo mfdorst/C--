@@ -8,7 +8,7 @@ fn main() {
   let result = parser::parse(expr);
 
   match result {
-    Ok(res) => println!("{}\n\n{}\n\n{:?}", expr, res, res.to_ast()),
+    Ok(res) => println!("{}\n\n{}\n\n{}", expr, res, res.to_ast()),
     Err(e) => println!("{}", e.msg),
   }
 }

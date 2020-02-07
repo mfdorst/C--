@@ -13,6 +13,67 @@ pub enum Ast {
   Integer(i32),
 }
 
+impl Ast {
+  fn top_level(&self) -> String {
+    match self {
+      Ast::Add(_, _) => "+".to_string(),
+      Ast::Sub(_, _) => "-".to_string(),
+      Ast::Mul(_, _) => "*".to_string(),
+      Ast::Div(_, _) => "/".to_string(),
+      Ast::Ident(id) => id.clone(),
+      Ast::Integer(i) => i.to_string(),
+    }
+  }
+
+  fn children(&self) -> Vec<&Ast> {
+    use Ast::{Add, Div, Mul, Sub};
+    match self {
+      Add(a, b) | Sub(a, b) | Mul(a, b) | Div(a, b) => vec![&**a, &**b],
+      _ => vec![],
+    }
+  }
+
+  fn to_string(&self) -> String {
+    fn tree_view(ast: &Ast, current_prefix: String, next_prefix: String, last: bool) -> String {
+      let mut view = if last {
+        format!("{}└- {}\n", current_prefix, ast.top_level())
+      } else {
+        format!("{}├- {}\n", current_prefix, ast.top_level())
+      };
+      let children = ast.children();
+      if children.len() == 0 {
+        return view;
+      }
+      let last_index = children.len() - 1;
+      for (i, child) in children.iter().enumerate() {
+        if i < last_index {
+          view.push_str(&tree_view(
+            &child,
+            next_prefix.clone(),
+            format!("{}|  ", next_prefix.clone()),
+            true,
+          ))
+        } else {
+          view.push_str(&tree_view(
+            &child,
+            next_prefix.clone(),
+            format!("{}   ", next_prefix.clone()),
+            true,
+          ))
+        }
+      }
+      view
+    }
+    tree_view(self, "".to_owned(), "   ".to_owned(), true)
+  }
+}
+
+impl std::fmt::Display for Ast {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    write!(f, "{}", self.to_string())
+  }
+}
+
 impl Expr {
   pub fn to_ast(&self) -> Box<Ast> {
     match self {
