@@ -180,11 +180,6 @@ impl TreeViewable for Factor {
   }
 }
 
-trait TreeViewable {
-  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>>;
-  fn root(&self) -> String;
-}
-
 fn tree_view_impl(
   tree: &dyn TreeViewable,
   current_prefix: String,
@@ -221,6 +216,11 @@ fn tree_view_impl(
   }
 
   view
+}
+
+trait TreeViewable {
+  fn get_children(&self) -> Vec<Box<&dyn TreeViewable>>;
+  fn root(&self) -> String;
 }
 
 fn tree_view(tree: &dyn TreeViewable) -> String {

@@ -1,5 +1,6 @@
 #![allow(non_snake_case)]
 
+mod ast;
 mod parser;
 
 fn main() {
@@ -7,7 +8,7 @@ fn main() {
   let result = parser::parse(expr);
 
   match result {
-    Ok(res) => println!("{}\n\n{}", expr, res),
+    Ok(res) => println!("{}\n\n{}\n\n{:?}", expr, res, res.to_ast()),
     Err(e) => println!("{}", e.msg),
   }
 }
